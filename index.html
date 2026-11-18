@@ -17,7 +17,7 @@ main{position:fixed;inset:0}
 .m u{display:block;height:100%;width:0}
 #hb{background:#6fdc7a}#pwb{background:var(--amber)}#nb{background:var(--red)}#tb{background:var(--teal)}
 #st{position:absolute;inset:0;background:#000}
-canvas{display:block;width:100%;height:100%;image-rendering:pixelated;cursor:crosshair;touch-action:none}
+canvas{display:block;width:100%;height:100%;image-rendering:auto;cursor:crosshair;touch-action:none}
 body{-webkit-user-select:none;user-select:none}
 #h3{position:absolute;inset:0;height:100%;pointer-events:none}
 #st::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.75))}
@@ -68,7 +68,7 @@ button:hover,button:focus-visible{background:#35dff0;color:#07161a;outline:none}
 </main>
 <script>
 const MAP=["########################","#S...#......#.....#..b.#","#....D......D.....H....#","#....#......#....x#....#","##D#####D######D####D###","#......................#","#......................#","###D######D#####D####D##","#......#......#....#...#","#..a...D......H....D..y#","#......#......#....#...#","####R######D#####D######","#.........#.......#....#","#.c.......H.......B...P#","#.........#......z#....#","########################"];
-const W=64,H=37,$=id=>document.getElementById(id),cv=$('v'),cx=cv.getContext('2d');let VW=480,VH=300,FOV=1.05;
+const W=64,H=37,$=id=>document.getElementById(id),cv=$('v'),cx=cv.getContext('2d');let VW=480,VH=300,FOV=1.05,RSC=2,CW=1,ZW=240,FS=1,QM='auto',RA=0,FT=.016,AT=3;const fcv=document.createElement('canvas'),fcx=fcv.getContext('2d');try{QM=JSON.parse(localStorage.q)||'auto'}catch(e){}
 let grid,S,K={},last=0,drag=0;const DO={};
 const LOGS={
 a:{who:'Ana Reyes, medic',t:'Day 41. The breach took the lower decks. I sealed myself in the med pod and the pod is draining my own cells to stay shut. One thing I learned: it does not see, it listens. Do not run.',
@@ -82,12 +82,12 @@ c:{who:'Chen Wei, engineer',t:'Coolant loop three is cracked. I can hold it shut
     ['Cut the loop and take the reserve. +25 power.',s=>{s.pw=Math.min(100,s.pw+25);return'The coolant hisses out. The reserve cells are warm in your hands.'}]]}};
 function reset(){
  const L=genLevel();grid=L.M;for(const k in DO)delete DO[k];
- S={x:1.5,y:1.5,a:.3,pw:100,noise:0,t:600,hp:100,dark:0,hpt:0,gen:{},sk:20,keys:{},decoys:1,tool:'scanner',lights:true,saved:{},read:{},scan:0,on:false,over:false,log:null,msg:0,
+ S={x:L.px,y:L.py,a:L.fx?Math.PI+.3:.3,pw:100,noise:0,t:600,hp:100,dark:0,hpt:0,gen:{},sk:20,keys:{},decoys:1,tool:'scanner',lights:true,saved:{},read:{},scan:0,on:false,over:false,log:null,msg:0,
   cr:{x:L.cx,y:L.cy,path:[],hunt:0,cd:0,tx:L.cx|0,ty:L.cy|0,lure:0}};
 }
 function say(t){$('msg').textContent=t;clearTimeout(S.msg);S.msg=setTimeout(()=>$('msg').textContent='',4500)}
 function ov(html){const o=$('ov');o.innerHTML=html;o.classList.toggle('h',!html)}
-function title(){reset();ov(`<h1>Blackout Station</h1><p class="log">You are the last technician aboard a dying station. Ten minutes until the hull gives. The escape pod is at the far end of the lower deck.</p><p class="dim">Click once anywhere to turn on the sound.</p><button id="go" class="mb">Play</button><button id="how" class="mb">How to play</button>`);$('go').onclick=start;$('how').onclick=help}
+function title(){reset();ov(`<h1>Blackout Station</h1><p class="log">You are the last technician aboard a dying station. Ten minutes until the hull gives. The escape pod is at the far end of the lower deck.</p><p class="dim">Click once anywhere to turn on the sound.</p><button id="go" class="mb">Play</button><button id="how" class="mb">How to play</button><button id="gfx" class="mb">${gfxLabel()}</button>`);$('go').onclick=start;$('how').onclick=help;$('gfx').onclick=gfx}
 function help(){ov(`<h1>How to play</h1><p class="dim">Everything you do spends one shared power budget: flashlight, doors, scans, terminals. Everything you do also makes noise. The creature hears you, and your light gives you away. Stand still and go dark and it loses you. If it hunts you, run: you are slightly faster. Power out means the scanner starts screaming and it comes for you.</p><p class="dim">Find the red and blue keycards in lockers, read the three terminals, and reach the pod. W A S D move, mouse or arrows turn, Shift run, L flashlight, Q switch tool, Space use tool, E interact.</p><button id="bk" class="mb">Back</button>`);$('bk').onclick=title}
 function start(){reset();S.on=true;ov('');lockMouse();audio();menuOff();ambOn();if(document.body.classList.contains('touch'))fsOn()}
 function end(kind){S.on=false;S.over=true;stopAll();setTimeout(()=>{if(!S.on)menuOn()},kind==='dead'?5000:800);document.exitPointerLock&&document.exitPointerLock();
@@ -109,7 +109,7 @@ addEventListener('keydown',e=>{const k=e.key.toLowerCase();K[k]=1;
  if(k==='l'&&S.pw>0)S.lights=!S.lights;
  if(k==='e'&&!e.repeat)use();
  if(k===' ')useTool();
- if(k==='q'||k==='tab')S.tool=S.tool==='scanner'?'decoy':'scanner'});
+ if(k==='q'||k==='tab'){const L=['scanner','decoy'];if(S.keys.blue)L.push('blue');if(S.keys.red)L.push('red');S.tool=L[(L.indexOf(S.tool)+1)%L.length]}});
 addEventListener('keyup',e=>K[e.key.toLowerCase()]=0);
 function lockMouse(){try{const p=cv.requestPointerLock();if(p&&p.catch)p.catch(()=>{})}catch(e){}}
 addEventListener('mousemove',e=>{if(!S||!S.on||S.log)return;const m=e.movementX||0;if(Math.abs(m)>90)return;if(document.pointerLockElement===cv||drag)S.a+=m*.0028});
@@ -119,6 +119,7 @@ cv.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('pointerlockchange',()=>{if(S&&S.on&&!S.log&&!document.pointerLockElement)say('Mouse released. Click the view to look around again.')});
 function scan(){if(S.pw<8){say('Not enough power to scan.');return}S.pw-=8;S.noise=Math.min(100,S.noise+35);S.scan=4;snd('ping')}
 function useTool(){if(S.tool==='scanner'){scan();return}
+ if(S.tool==='blue'||S.tool==='red'){say('Face a '+S.tool+' door and press E to open it.');return}
  if(S.decoys<1){say('No decoys left.');return}
  let d=1;while(d<9&&!solid(S.x+Math.cos(S.a)*d,S.y+Math.sin(S.a)*d))d+=.4;d-=.4;
  const c=S.cr;S.decoys--;snd('throw');c.tx=(S.x+Math.cos(S.a)*d)|0;c.ty=(S.y+Math.sin(S.a)*d)|0;c.hunt=6;c.lure=6;c.path=[];c.cd=0;say('The decoy clatters away. Something turns toward it.')}
@@ -128,7 +129,7 @@ function use(){
    const cost=c==='H'?0:4;if(S.pw<cost){say('Not enough power to open the door.');return}if(DO[y*W+x])return;
    S.pw-=cost;S.noise=Math.min(100,S.noise+(c==='H'?45:22));DO[y*W+x]=.001;snd(c==='H'?'hatch':'door');say(c==='H'?'You wrench the emergency hatch open. That echoed.':'Door cycled. The hinges were loud.');return}
   if('xyz'.includes(c)){if(S.read[c]){say('The locker is empty.');return}S.read[c]=1;snd('locker');
-   if(c==='x'){S.keys.red=1;say('Found a red keycard.')}else if(c==='y'){S.keys.blue=1;say('Found a blue keycard.')}else{S.decoys+=1;say('Found a noise decoy.')}return}
+   if(c==='x'){S.keys.red=1;S.tool='red';say('Found a red keycard. It is in your hand. Press Q to switch tools.')}else if(c==='y'){S.keys.blue=1;S.tool='blue';say('Found a blue keycard. It is in your hand. Press Q to switch tools.')}else{S.decoys+=1;say('Found a noise decoy.')}return}
   if('abc'.includes(c)){readLog(c);return}
   if(c==='G'){if(S.gen[y*W+x]){say('This generator is spent.');return}if(!S.gc){S.gc=[x,y];S.ch=0;say('Charging. Hold E and stay still.')}return}
   if(c==='P'){if(S.pw<10){say('The pod needs 10 power to launch.');return}S.pw-=10;end('launch');return}
@@ -188,21 +189,21 @@ function update(dt){
 function render(){
 
  const fov=FOV,zb=new Array(VW),reach=S.lights?9:1.7,fl=S.pw<20&&S.pw>0&&Math.random()<.12?.4:1;floorCeil(fov,reach,fl);
- for(let i=0;i<VW;i+=2){
-  const ra=S.a+(i/VW-.5)*fov,rx=Math.cos(ra),ry=Math.sin(ra);
+ for(let ci=0;ci<ZW;ci++){const i=ci*CW;
+  const ra=S.a+((i+CW/2)/VW-.5)*fov,rx=Math.cos(ra),ry=Math.sin(ra);
   let mx=S.x|0,my=S.y|0;const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry);let sx,sy,sdx,sdy,side=0,c='#';
   if(rx<0){sx=-1;sdx=(S.x-mx)*ddx}else{sx=1;sdx=(mx+1-S.x)*ddx}
   if(ry<0){sy=-1;sdy=(S.y-my)*ddy}else{sy=1;sdy=(my+1-S.y)*ddy}
   for(let n=0;n<120;n++){if(sdx<sdy){sdx+=ddx;mx+=sx;side=0}else{sdy+=ddy;my+=sy;side=1}
    c=grid[my]?.[mx];if(c===undefined||'#DRBHabcPG'.includes(c))break}
   if(c!==undefined&&!'#DRBHabcPG'.includes(c))c='#';
-  const d=side?sdy-ddy:sdx-ddx,pd=Math.max(.05,d*Math.cos(ra-S.a));zb[i]=zb[i+1]=pd;
+  const d=side?sdy-ddy:sdx-ddx,pd=Math.max(.05,d*Math.cos(ra-S.a));zb[ci]=pd;
   const h=VH/pd,wx=((side?S.x+d*rx:S.y+d*ry)%1+1)%1,top=(VH-h)/2;
   const rch=S.lights&&Math.abs(ra-S.a)>.3?3:reach;
   let f=Math.pow(Math.max(0,1-pd/rch),1.4)*fl+.035;
   if(!'#DRBHG'.includes(c))f=Math.max(f,.9-pd/11);
   if(side)f*=.75;
-  const B=(y0,y1,k,ff)=>{const q=ff===undefined?f:ff,a=Math.round(top+h*y0),e=Math.round(top+h*y1);if(e>a){cx.fillStyle=`rgb(${k[0]*q|0},${k[1]*q|0},${k[2]*q|0})`;cx.fillRect(i,a,2,e-a)}};
+  const B=(y0,y1,k,ff)=>{const q=ff===undefined?f:ff,a=Math.round((top+h*y0)*RSC)/RSC,e=Math.round((top+h*y1)*RSC)/RSC;if(e>a){cx.fillStyle=`rgb(${k[0]*q|0},${k[1]*q|0},${k[2]*q|0})`;cx.fillRect(i,a,CW+.02,e-a)}};
   if(c==='#'){
    const v=(mx*5+my*3+((mx*my)&3))%6,n=(mx*7+my*13)%5,u=wx*40|0,D=[38,42,48],Ln=(y,k)=>pd<5&&B(y,y+.012,k),bs=[132+n*3,138+n*3,146+n*3],sh=a=>[bs[0]-a,bs[1]-a,bs[2]-a];
    B(0,.08,sh(34));B(.08,.2,sh(14));B(.2,.8,bs);B(.8,.93,sh(12));B(.93,1,[70,58,54]);
@@ -234,7 +235,7 @@ function render(){
   }}
  drawLockers(fov,zb);const cr=S.cr,ddx=cr.x-S.x,ddy=cr.y-S.y,dist=Math.hypot(ddx,ddy);let ang=Math.atan2(ddy,ddx)-S.a;ang=Math.atan2(Math.sin(ang),Math.cos(ang));
  if(Math.abs(ang)<fov/2+.2){const px=(.5+ang/fov)*VW,pd=dist*Math.cos(ang),sh=VH/pd,sw=sh*.4,col=Math.max(0,Math.min(VW-1,px|0));
-  if(pd<(zb[col]??99)&&(S.lights?dist<reach+.5:dist<3.2)){
+  if(pd<(zb[Math.min(ZW-1,Math.max(0,(px/CW)|0))]??99)&&(S.lights?dist<reach+.5:dist<3.2)){
    drawMonster2(px,sh,sw)}}
  if(S.scan>0){const R=44,ox=VW-R-14,oy=R+14,k=R/12;
   cx.fillStyle='rgba(5,12,12,.85)';cx.beginPath();cx.arc(ox,oy,R,0,7);cx.fill();cx.strokeStyle='#3fb8a8';cx.lineWidth=1;cx.stroke();
@@ -258,29 +259,30 @@ function drawLockers(fov,zb){
  for(const[dist,dx,dy,ch]of L){let ang=Math.atan2(dy,dx)-S.a;ang=Math.atan2(Math.sin(ang),Math.cos(ang));if(Math.abs(ang)>fov/2+.3)continue;
   const pd=dist*Math.cos(ang);if(pd<.15)continue;
   const sh=VH/pd,bot=(VH+sh)/2,bh=sh*.42,bw=sh*.34,px=(.5+ang/fov)*VW,lt=Math.max(.12,1-pd/(S.lights?9:2)),used=S.read[ch],pk=used?[120,60,92]:[255,80,170],pe=used?.5:Math.max(lt,1-pd/28);
-  for(let X=Math.max(0,Math.floor(px-bw/2));X<Math.min(VW,px+bw/2);X+=2){const col=X&~1;if(pd>=(zb[col]??99))continue;
-   cx.fillStyle=`rgb(${62*lt|0},${86*lt|0},${96*lt|0})`;cx.fillRect(col,bot-bh,2,bh);
-   cx.fillStyle=`rgb(${pk[0]*pe|0},${pk[1]*pe|0},${pk[2]*pe|0})`;cx.fillRect(col,bot-bh,2,Math.max(1,bh*.12));
-   if(Math.abs(col+1-px)<bw*.12)cx.fillRect(col,bot-bh*.78,2,Math.max(2,bh*.3))}}}
+  for(let X=Math.max(0,px-bw/2);X<Math.min(VW,px+bw/2);X+=CW){if(pd>=(zb[Math.min(ZW-1,(X/CW)|0)]??99))continue;
+   cx.fillStyle=`rgb(${62*lt|0},${86*lt|0},${96*lt|0})`;cx.fillRect(X,bot-bh,CW+.02,bh);
+   cx.fillStyle=`rgb(${pk[0]*pe|0},${pk[1]*pe|0},${pk[2]*pe|0})`;cx.fillRect(X,bot-bh,CW+.02,Math.max(1/RSC,bh*.12));
+   if(Math.abs(X+CW/2-px)<bw*.12)cx.fillRect(X,bot-bh*.78,CW+.02,Math.max(2/RSC,bh*.3))}}}
 let IM;
 function floorCeil(fov,reach,fl){
- if(!IM)IM=cx.createImageData(VW,VH);const A=IM.data;
- for(let i=0;i<VW;i+=2){const ra=S.a+(i/VW-.5)*fov,rx=Math.cos(ra),ry=Math.sin(ra),cs=Math.cos(ra-S.a),rch=S.lights&&Math.abs(ra-S.a)>.3?3:reach;
-  for(let y=0;y<VH/2;y++){const pd=VH/(2*(VH/2-y));let cr=0,cg=0,cb=0,fr=0,fg=0,fb=0;
-   if(pd<18){const k=pd/cs,wx=S.x+rx*k,wy=S.y+ry*k,tx=Math.floor(wx),ty=Math.floor(wy),gx=wx-tx,gy=wy-ty,lt=Math.pow(Math.max(0,1-pd/rch),1.4)*fl+.03;
-    let r=62,g=64,b=74,e=lt;
-    if(pd<5&&(gx<.03||gy<.03)){r=40;g=42;b=50}
-    else if(pd<5&&(tx+ty)%3===0&&gx>.2&&gx<.8&&gy>.4&&gy<.6){r=104;g=106;b=114}
-    else if(pd<4&&ty%4===1&&gy>.82){const s=(gx*8|0)%2;r=s?30:110;g=s?30:78;b=s?34:34}
-    cr=r*e;cg=g*e;cb=b*e;r=50;g=54;b=62;e=lt;
-    if(pd<5&&(gx<.03||gy<.03)){r=28;g=30;b=36}
-    else if(pd<5&&tx%5===0&&gx>.45&&gx<.55){r=210;g=160;b=40}
-    else if(pd<5&&(tx*3+ty)%4===0&&gx>.3&&gx<.7&&gy>.3&&gy<.7){r=36;g=40;b=46}
-    fr=r*e;fg=g*e;fb=b*e}
-   const o1=(y*VW+i)*4,o2=((VH-1-y)*VW+i)*4;
-   A[o1]=A[o1+4]=cr;A[o1+1]=A[o1+5]=cg;A[o1+2]=A[o1+6]=cb;A[o1+3]=A[o1+7]=255;
-   A[o2]=A[o2+4]=fr;A[o2+1]=A[o2+5]=fg;A[o2+2]=A[o2+6]=fb;A[o2+3]=A[o2+7]=255}}
- cx.putImageData(IM,0,0)}
+  const FW=VW*FS,FH=VH*FS;if(!IM)IM=fcx.createImageData(FW,FH);const A=IM.data,LA=[],LB=[];
+  for(let y=0;y<FH/2;y++){const pd=FH/(2*(FH/2-y));LA[y]=Math.pow(Math.max(0,1-pd/reach),1.4)*fl+.03;LB[y]=Math.pow(Math.max(0,1-pd/3),1.4)*fl+.03}
+  for(let i=0;i<FW;i+=2){const ra=S.a+(i/FW-.5)*fov,rx=Math.cos(ra),ry=Math.sin(ra),cs=Math.cos(ra-S.a),LT=S.lights&&Math.abs(ra-S.a)>.3?LB:LA;
+   for(let y=0;y<FH/2;y++){const pd=FH/(2*(FH/2-y));let cr=0,cg=0,cb=0,fr=0,fg=0,fb=0;
+    if(pd<18){const k=pd/cs,wx=S.x+rx*k,wy=S.y+ry*k,tx=Math.floor(wx),ty=Math.floor(wy),gx=wx-tx,gy=wy-ty,lt=LT[y];
+     let r=62,g=64,b=74,e=lt;
+     if(pd<5&&(gx<.03||gy<.03)){r=40;g=42;b=50}
+     else if(pd<5&&(tx+ty)%3===0&&gx>.2&&gx<.8&&gy>.4&&gy<.6){r=104;g=106;b=114}
+     else if(pd<4&&ty%4===1&&gy>.82){const s=(gx*8|0)%2;r=s?30:110;g=s?30:78;b=s?34:34}
+     cr=r*e;cg=g*e;cb=b*e;r=50;g=54;b=62;e=lt;
+     if(pd<5&&(gx<.03||gy<.03)){r=28;g=30;b=36}
+     else if(pd<5&&tx%5===0&&gx>.45&&gx<.55){r=210;g=160;b=40}
+     else if(pd<5&&(tx*3+ty)%4===0&&gx>.3&&gx<.7&&gy>.3&&gy<.7){r=36;g=40;b=46}
+     fr=r*e;fg=g*e;fb=b*e}
+    const o1=(y*FW+i)*4,o2=((FH-1-y)*FW+i)*4;
+    A[o1]=A[o1+4]=cr;A[o1+1]=A[o1+5]=cg;A[o1+2]=A[o1+6]=cb;A[o1+3]=A[o1+7]=255;
+    A[o2]=A[o2+4]=fr;A[o2+1]=A[o2+5]=fg;A[o2+2]=A[o2+6]=fb;A[o2+3]=A[o2+7]=255}}
+  fcx.putImageData(IM,0,0);cx.imageSmoothingEnabled=true;cx.imageSmoothingQuality='high';cx.drawImage(fcv,0,0,VW,VH)}
 let AC;
 let MG,BUF={},AMB=null,MEN=null,GL=null,HB={k:null,s:null,g:null};
 const SMAP={door:['door',.8],hatch:['hatch',.9],locker:['locker',.8],gdone:['gdone',.9],growl:['growl',.9],howl:['howl',1],shriek:['screech',.75]};
@@ -310,7 +312,9 @@ addEventListener('pointerdown',()=>{audio();if(!S.on)menuOn()});
 function snd(n){if(!AC)return;if(n==='step'){if(play((S.stp=!S.stp)?'step1':'step2',.5,.94+Math.random()*.12))return}else if(SMAP[n]&&play(SMAP[n][0],SMAP[n][1]))return;const P={hatch:['sawtooth',50,.25,.8],locker:['sine',1000,.08,.2],gdone:['sine',600,.12,.6],step:['square',90,.04,.07],door:['sawtooth',60,.2,1.8],ping:['sine',880,.2,.5],beat:['sine',55,.35,.2],growl:['sawtooth',70,.18,1.1],throw:['triangle',320,.14,.3],card:['sine',1200,.08,.15],kick:['sine',80,.55,.16],shriek:['sawtooth',1100,.06,.2],hiss:['sawtooth',200,.5,1.4],howl:['sawtooth',420,.35,2.2],hum:['sawtooth',110,.1,.5]}[n],t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();
  o.type=P[0];o.frequency.setValueAtTime(P[1],t);o.frequency.exponentialRampToValueAtTime(n==='ping'?1300:Math.max(20,P[1]*.5),t+P[3]);g.gain.setValueAtTime(P[2],t);g.gain.exponentialRampToValueAtTime(.001,t+P[3]);o.connect(g);g.connect(MG||AC.destination);o.start(t);o.stop(t+P[3])}
 function genLevel(){for(;;){const RX=7,RY=4,C=9,M=[...Array(H)].map(()=>Array(W).fill('#')),adj=[...Array(RX*RY)].map(()=>[]),E=[];
- for(let b=0;b<RY;b++)for(let a=0;a<RX;a++){for(let y=1;y<9;y++)for(let x=1;x<9;x++)M[b*C+y][a*C+x]='.';if(a||b)for(let k=0;k<3;k++)if(Math.random()<.8)M[b*C+[2,3,6,7][Math.random()*4|0]][a*C+[2,3,6,7][Math.random()*4|0]]='#'}
+ for(let b=0;b<RY;b++)for(let a=0;a<RX;a++){for(let y=1;y<9;y++)for(let x=1;x<9;x++)M[b*C+y][a*C+x]='.';if(a||b){const ins=[0,0,0,0].map(()=>Math.random()*3|0),R2=n=>Math.random()*n|0;
+   for(let y=1;y<9;y++)for(let x=1;x<9;x++)if(x!==4&&y!==4&&(x<=ins[0]||x>8-ins[1]||y<=ins[2]||y>8-ins[3]))M[b*C+y][a*C+x]='#';
+   for(let k=R2(6);k>0;k--){const bw=1+R2(2),bh=1+R2(2),bx=1+R2(9-bw),by=1+R2(9-bh);let okb=1;for(let y=by;y<by+bh;y++)for(let x=bx;x<bx+bw;x++)if(x===4||y===4)okb=0;if(okb)for(let y=by;y<by+bh;y++)for(let x=bx;x<bx+bw;x++)M[b*C+y][a*C+x]='#'}}}
  const link=(i,j,ch)=>{const a=i%RX,b=i/RX|0,c=j%RX,d=j/RX|0;let x,y;if(c!==a){x=Math.max(a,c)*C;y=b*C+4}else{y=Math.max(b,d)*C;x=a*C+4}M[y][x]=ch;adj[i].push(j);adj[j].push(i);E.push({i,j,x,y})};
  const nb=i=>{const a=i%RX,b=i/RX|0,r=[];if(a>0)r.push(i-1);if(a<RX-1)r.push(i+1);if(b>0)r.push(i-RX);if(b<RY-1)r.push(i+RX);return r};
  const seen=new Set([0]),st=[0];while(st.length){const i=st[st.length-1],o=nb(i).filter(j=>!seen.has(j));if(!o.length){st.pop();continue}const j=o[Math.random()*o.length|0];seen.add(j);link(i,j,'D');st.push(j)}
@@ -319,19 +323,23 @@ function genLevel(){for(;;){const RX=7,RY=4,C=9,M=[...Array(H)].map(()=>Array(W)
  const pod=lv[0],dist=(p,r)=>Math.hypot(p%RX-r%RX,(p/RX|0)-(r/RX|0)),rc=lv.slice(1).filter(i=>dist(i,0)>=2.5&&dist(i,pod)>=2.5);if(!rc.length)continue;const rea=rc[Math.random()*rc.length|0];
  const lock=(room,ch)=>{const e=E.find(e=>e.i===room||e.j===room);M[e.y][e.x]=ch};lock(pod,'B');lock(rea,'R');
  for(let i=0;i<RX*RY;i++)for(const j of nb(i))if(j>i&&!adj[i].includes(j)&&![pod,rea,0].includes(i)&&![pod,rea,0].includes(j)&&Math.random()<.3)link(i,j,Math.random()<.35?'D':'H');
- const put=(i,ch)=>{const a=i%RX,b=i/RX|0;for(let n=0;n<40;n++){const x=a*C+[1,2,7,8][Math.random()*4|0],y=b*C+[1,8][Math.random()*2|0];if(M[y][x]==='.'){M[y][x]=ch;return}}};
+ const PL=[],put=(i,ch)=>{const a=i%RX,b=i/RX|0;for(let n=0;n<150;n++){const dx=1+(Math.random()*8|0),dy=1+(Math.random()*8|0),x=a*C+dx,y=b*C+dy;if(dx!==4&&dy!==4&&M[y][x]==='.'&&[[1,0],[-1,0],[0,1],[0,-1]].some(([u,v])=>M[y+v][x+u]==='#')){M[y][x]=ch;PL.push([x,y,ch]);return}}};
  const free=[...Array(RX*RY).keys()].filter(i=>i&&i!==pod&&i!==rea),pk=()=>free[Math.random()*free.length|0];
  let ta,tb,ok=0;for(let n=0;n<300&&!ok;n++){ta=pk();tb=pk();if(ta!==tb&&dist(ta,tb)>=3&&dist(ta,rea)>=3&&dist(tb,rea)>=3&&dist(ta,0)>=2&&dist(tb,0)>=2)ok=1}if(!ok)continue;
  put(ta,'a');put(tb,'b');put(rea,'c');put(pod,'P');
  const fr=i=>[ta,tb,rea].every(t=>dist(i,t)>=3),kf=free.filter(fr);if(kf.length<2)continue;
  const kx=kf[Math.random()*kf.length|0],ky=kf.filter(i=>dist(i,kx)>=3);if(!ky.length)continue;
- put(kx,'x');put(ky[Math.random()*ky.length|0],'y');for(let n=0;n<10;n++)put(pk(),'z');
+ put(kx,'x');put(ky[Math.random()*ky.length|0],'y');for(let n=0,m=6+(Math.random()*7|0);n<m;n++)put(pk(),'z');
  const putG=i=>{const a=i%RX,b=i/RX|0;for(let n=0;n<80;n++){const t=[2,3,5,6,7][Math.random()*5|0],s=Math.random()*4|0;let x,y,ix,iy;
   if(s===0){x=a*C+t;y=b*C;ix=x;iy=y+1}else if(s===1){x=a*C+t;y=b*C+9;ix=x;iy=y-1}else if(s===2){x=a*C;y=b*C+t;ix=x+1;iy=y}else{x=a*C+9;y=b*C+t;ix=x-1;iy=y}
   if(x>0&&y>0&&x<W-1&&y<H-1&&M[y][x]==='#'&&M[iy][ix]==='.'){M[y][x]='G';return}}};
  [...free].sort(()=>Math.random()-.5).slice(0,Math.random()<.5?2:1).forEach(putG);if(!M.some(r=>r.includes('G')))continue;
  const cp=free.filter(i=>dist(i,0)>=2&&dist(i,0)<=3.5),cs=(cp.length?cp:free)[Math.random()*(cp.length||free.length)|0];
- return{M,cx:(cs%RX)*C+4.5,cy:(cs/RX|0)*C+4.5}}}
+ const rs=new Set([W+1]),qq=[[1,1]];while(qq.length){const[x,y]=qq.pop();for(const[u,v]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+u,ny=y+v;if(!rs.has(ny*W+nx)&&'.DH'.includes(M[ny][nx])){rs.add(ny*W+nx);qq.push([nx,ny])}}}
+ if(!PL.filter(p=>'abxyz'.includes(p[2])).every(([x,y])=>[[1,0],[-1,0],[0,1],[0,-1]].some(([u,v])=>rs.has((y+v)*W+x+u))))continue;
+ const fx=Math.random()<.5,fy=Math.random()<.5;let ccx=(cs%RX)*C+4.5,ccy=(cs/RX|0)*C+4.5,px=1.5,py=1.5;
+ if(fx){for(const r of M)r.reverse();ccx=W-ccx;px=W-px}if(fy){M.reverse();ccy=H-ccy;py=H-py}
+ return{M,cx:ccx,cy:ccy,px,py,fx}}}
 function scare(p){const u=VH*(1.1+p*.6),X=VW/2+(Math.random()-.5)*14,Y=VH/2+(Math.random()-.5)*14,fl=Math.random();
  cx.fillStyle=fl<.1?'#ffffff':`rgb(${50+fl*70|0},0,${40+fl*60|0})`;cx.fillRect(0,0,VW,VH);
  cx.fillStyle='#050205';cx.beginPath();cx.ellipse(X,Y-u*.05,u*.42,u*.52,0,0,7);cx.fill();
@@ -342,9 +350,9 @@ function scare(p){const u=VH*(1.1+p*.6),X=VW/2+(Math.random()-.5)*14,Y=VH/2+(Mat
 function scream(){if(AC&&play('caught',1)){setTimeout(()=>play('growl',.9,.8),500);return}if(AC)for(let k=0;k<4;k++)setTimeout(()=>{snd('hiss');snd('growl');snd('shriek')},k*280);
  try{const u=new SpeechSynthesisUtterance('Heeeaaahhh... hahahahaha... found youuuu');u.pitch=.1;u.rate=.55;u.volume=1;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}}
 let R3;
-function init3(){try{const r=new THREE.WebGLRenderer({canvas:$('h3'),alpha:true,antialias:true});r.setSize(VW,VH,false);
+function init3(){try{const r=new THREE.WebGLRenderer({canvas:$('h3'),alpha:true,antialias:true});r.setSize(VW*RSC,VH*RSC,false);
  const s=new THREE.Scene(),cam=new THREE.PerspectiveCamera(60,VW/VH,.05,10),M=(c,o)=>new THREE.MeshStandardMaterial({color:c,roughness:o===undefined?.7:o}),
- lb=(t,col)=>{const k=document.createElement('canvas');k.width=160;k.height=64;const g=k.getContext('2d');g.fillStyle=col;g.fillRect(0,0,160,64);g.fillStyle='#0b0b0b';g.font='bold 34px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,80,35);return new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(k),side:THREE.DoubleSide})},
+ lb=(t,col)=>{const k=document.createElement('canvas');k.width=640;k.height=256;const g=k.getContext('2d');g.scale(4,4);g.fillStyle=col;g.fillRect(0,0,160,64);g.fillStyle='#0b0b0b';g.font='bold 34px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,80,35);return new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(k),side:THREE.DoubleSide})},
  box=(w,h,d,m,x,y,z,g)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);g.add(o);return o},
  cyl=(a,b,l,m,x,y,z,rx,g)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(a,b,l,16),m);o.position.set(x,y,z);o.rotation.x=rx;g.add(o);return o},
  pl=(w,h,m,x,y,z,rx,g)=>{const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),m);o.position.set(x,y,z);o.rotation.x=rx;g.add(o);return o};
@@ -356,10 +364,13 @@ function init3(){try{const r=new THREE.WebGLRenderer({canvas:$('h3'),alpha:true,
  const sc=new THREE.Group(),dc=new THREE.Group();R.add(sc,dc);
  box(.26,.07,.34,M(0x39454b,.4),0,.1,-.12,sc);const scr=pl(.18,.12,new THREE.MeshBasicMaterial({color:0x1c3b36}),0,.138,-.06,-Math.PI/2,sc);pl(.22,.065,lb('SCANNER','#3fb8a8'),0,.14,-.22,-Math.PI/2,sc);
  cyl(.06,.06,.28,M(0x7a5a2e,.5),0,.17,-.02,0,dc);pl(.13,.1,lb('DECOY','#d64545'),0,.17,.042,0,dc);
- s.add(L,R);R3={r,s,cam,L,R,lens,sc,dc,scr}}catch(e){R3=0}}
+ const lc=(t,col)=>{const k=document.createElement('canvas');k.width=640;k.height=256;const g=k.getContext('2d');g.scale(4,4);g.fillStyle=col;g.fillRect(0,0,160,64);g.fillStyle='#0b0b0b';g.font='bold 25px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(t,80,35);return new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(k),side:THREE.DoubleSide})},
+  card=(col,txt,bg)=>{const g=new THREE.Group();box(.22,.012,.32,M(col,.45),0,.13,-.1,g);box(.22,.014,.035,M(0x15191c),0,.134,-.22,g);box(.035,.016,.035,M(0xd9b24a,.3),-.07,.136,-.17,g);pl(.17,.07,lc(txt,bg),0,.14,-.06,-Math.PI/2,g);return g},
+  kb=card(0x2f62c9,'BLUE CARD','#8fb4ff'),kr=card(0xb83232,'RED CARD','#ff9a9a');R.add(kb,kr);
+ s.add(L,R);R3={r,s,cam,L,R,lens,sc,dc,scr,kb,kr}}catch(e){R3=0}}
 function anim3(){if(!R3){hands();return}$('h3').style.display='';const t=performance.now()/1000,b=S.moving?Math.sin(t*9)*.025:Math.sin(t*1.5)*.006,w=S.moving?Math.cos(t*4.5)*.02:0;
  R3.L.position.set(-.48+w,-.44+b,-.95);R3.L.rotation.set(.08,.22,0);R3.R.position.set(.48-w,-.44-b,-.95);R3.R.rotation.set(.08,-.22,0);
- R3.lens.material.color.setHex(S.lights?0xfff2b0:0x222222);R3.sc.visible=S.tool==='scanner';R3.dc.visible=S.tool!=='scanner';R3.scr.material.color.setHex(S.scan>0?0x7dffe0:0x1c3b36);R3.r.render(R3.s,R3.cam)}
+ R3.lens.material.color.setHex(S.lights?0xfff2b0:0x222222);R3.sc.visible=S.tool==='scanner';R3.dc.visible=S.tool==='decoy';R3.kb.visible=S.tool==='blue';R3.kr.visible=S.tool==='red';R3.scr.material.color.setHex(S.scan>0?0x7dffe0:0x1c3b36);R3.r.render(R3.s,R3.cam)}
 function drawMonster2(px,sh){
  const t=performance.now()/1000,hunt=S.cr.hunt>0,u=sh,F=(VH+sh)/2,sw=Math.sin(t*(hunt?7:1.6))*u*.025,tw=hunt?Math.sin(t*23)*u*.004:0,X=px+sw,P=(x,y)=>[X+x*u+tw,F-y*u];
  cx.lineCap=cx.lineJoin='round';
@@ -404,11 +415,16 @@ function hud(){
  $('pwn').textContent=Math.round(S.pw)+'%';$('pwb').style.width=S.pw+'%';
  $('nn').textContent=Math.round(S.noise);$('nb').style.width=S.noise+'%';
  $('tn').textContent=fmt(S.t);$('tb').style.width=(S.t/6)+'%';
- $('inv').textContent='Left hand: flashlight '+(S.lights?'on':'off')+' · Right hand: '+S.tool+' (Q switch, Space use) · Cards: '+(S.keys.red?'red ':'')+(S.keys.blue?'blue ':'')+(S.keys.red||S.keys.blue?'':'none')+' · Decoys: '+S.decoys}
-function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;update(dt);render();hud();requestAnimationFrame(loop)}
+ $('inv').textContent='Left hand: flashlight '+(S.lights?'on':'off')+' · Right hand: '+({blue:'blue keycard',red:'red keycard'}[S.tool]||S.tool)+' (Q switch, Space use) · Cards: '+(S.keys.red?'red ':'')+(S.keys.blue?'blue ':'')+(S.keys.red||S.keys.blue?'':'none')+' · Decoys: '+S.decoys}
+function loop(t){const dt=Math.min(.05,(t-last)/1000||0);last=t;cx.setTransform(RSC,0,0,RSC,0,0);FT=FT*.97+dt*.03;
+ if(QM==='auto'&&S&&S.on&&(AT-=dt)<=0){AT=2;if(FT>.024&&RSC>1){RA=RSC-1;fit();FT=.016}}
+ update(dt);render();hud();requestAnimationFrame(loop)}
 function fsOn(){try{const e=document.documentElement,p=(e.requestFullscreen||e.webkitRequestFullscreen||(()=>0)).call(e);if(p&&p.catch)p.catch(()=>{});try{screen.orientation.lock('landscape').catch(()=>{})}catch(x){}}catch(x){}}
-function fit(){const a=Math.max(1.2,Math.min(2.4,innerWidth/innerHeight));VH=300;VW=Math.round(VH*a/2)*2;cv.width=VW;cv.height=VH;IM=null;FOV=1.05*VW/480;
- if(R3&&R3.r){R3.r.setSize(VW,VH,false);R3.cam.aspect=VW/VH;R3.cam.updateProjectionMatrix()}else{const h=$('h3');h.width=VW;h.height=VH}}
+function fit(){const a=Math.max(1.2,Math.min(2.4,innerWidth/innerHeight)),R0=matchMedia('(pointer:coarse)').matches?Math.max(1,Math.min(5,Math.ceil(innerHeight*(devicePixelRatio||1)/300))):5;VH=300;VW=Math.round(VH*a/2)*2;
+ RSC=QM==='auto'?Math.min(R0,RA||R0):QM;CW=2/RSC;ZW=Math.ceil(VW/CW);cv.width=VW*RSC;cv.height=VH*RSC;FS=RSC>=3?2:1;fcv.width=VW*FS;fcv.height=VH*FS;IM=null;FOV=1.05*VW/480;
+ if(R3&&R3.r){R3.r.setSize(VW*RSC,VH*RSC,false);R3.cam.aspect=VW/VH;R3.cam.updateProjectionMatrix()}else{const h=$('h3');h.width=VW*RSC;h.height=VH*RSC}}
+const QMS=['auto',5,4,3,2,1],gfxLabel=()=>'Graphics: '+(QM==='auto'?'Auto':QM+'x');
+function gfx(){QM=QMS[(QMS.indexOf(QM)+1)%QMS.length];RA=0;try{localStorage.q=JSON.stringify(QM)}catch(e){}fit();$('gfx').textContent=gfxLabel()}
 addEventListener('resize',fit);
 $('fs').onclick=()=>{try{if(document.fullscreenElement)document.exitFullscreen();else fsOn()}catch(x){}};
 function touchInit(){
